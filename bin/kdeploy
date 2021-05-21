@@ -26,11 +26,44 @@ spec:
         app: debug-app
     spec:
       containers:
-      - image: realorko/docker-debugging-app:latest
+      - name: debug-app
+        image: realorko/docker-debugging-app:latest
         imagePullPolicy: Always
-        name: debug-app
         ports:
         - containerPort: 8000
+        env:
+        - name: PORT
+          value: "8000"
+        - name: FAIL_HEALTH_CHECK
+          value: "false"
 EOF
 
-kubectl wait --for=condition=available --timeout=600s deployment/debug -n devops
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "3600"
+    service.beta.kubernetes.io/aws-load-balancer-internal: "false"
+    service.beta.kubernetes.io/aws-load-balancer-name: debug-app
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: ssl
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: https
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+  name: debug-app
+  namespace: devops-app
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8000
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 8000
+  sessionAffinity: None
+  type: LoadBalancer
+EOF
+
+kubectl wait --for=condition=available --timeout=600s deployment/debug-app -n devops-app
