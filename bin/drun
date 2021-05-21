@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+docker run -d -p 8000:8000 -e FAIL_HEALTH_CHECK=false -e PORT=8000 docker-debugging-app
+
+docker ps

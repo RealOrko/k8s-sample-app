@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+docker tag docker-debugging-app realorko/docker-debugging-app:1.0.0
+docker push realorko/docker-debugging-app:1.0.0
+docker tag docker-debugging-app realorko/docker-debugging-app:latest
+docker push realorko/docker-debugging-app:latest

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+KPOD=$(kubectl get pods -n devops-app | awk '{if (NR!=1) {print $1}}')
+kubectl -n devops exec --stdin --tty $KPOD -- /bin/bash --rcfile /.bashrc

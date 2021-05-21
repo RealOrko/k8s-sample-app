@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+go build -o $PWD/bin/sample-app
+
+docker image prune -a -f
+docker build -t docker-debugging-app $PWD/
+docker tag docker-debugging-app realorko/docker-debugging-app:latest
+
+docker image ls 

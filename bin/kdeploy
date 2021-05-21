@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+# Namespace
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devops-app
+EOF
+
+# Deployment
+cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debug-app
+  namespace: devops-app
+spec:
+  selector:
+    matchLabels:
+      app: debug-app
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: debug-app
+    spec:
+      containers:
+      - image: realorko/docker-debugging-app:latest
+        imagePullPolicy: Always
+        name: debug-app
+        ports:
+        - containerPort: 8000
+EOF
+
+kubectl wait --for=condition=available --timeout=600s deployment/debug -n devops
