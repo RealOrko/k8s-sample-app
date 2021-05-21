@@ -1,0 +1,5 @@
+.direnv/
+.idea/
+.vscode/
+src/github.com/
+bin/sample-app
