@@ -1,5 +1,3 @@
 #!/usr/bin/env bash
 
-pushd $PWD/src/sample-app
-go build -o ../../bin/sample-app
-popd
+go build -o $PWD/bin/sample-app
