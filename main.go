@@ -157,7 +157,7 @@ func main() {
 	r.Use(prometheusMiddleware)
 
 	r.HandleFunc("/test", HandleHealthCheck)
-	r.Path("/prometheus").Handler(promhttp.Handler())
+	r.Path("/metrics").Handler(promhttp.Handler())
 
 	log.Printf("Starting server on port %s\n", e.httpPort)
 	log.Fatal(http.ListenAndServe(":" + e.httpPort, r))
