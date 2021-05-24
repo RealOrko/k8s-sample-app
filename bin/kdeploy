@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Yeah, this really has to happen now. Ingress creates "classic" loadbalancers.
+#https://medium.com/devops-dudes/running-the-latest-aws-load-balancer-controller-in-your-aws-eks-cluster-9d59cdc1db98
+
+# A workaround for NLB loop back problem. Solution, TargetGroupType=ip
+# https://stackoverflow.com/questions/47272557/aws-network-load-balancer-doesnt-allow-traffic-to-its-source-instance-from-it-s
+
 # Namespace
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -30,7 +36,8 @@ spec:
         image: realorko/docker-debugging-app:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 8000
+        - name: http
+          containerPort: 8000
         env:
         - name: PORT
           value: "8000"
@@ -38,21 +45,28 @@ spec:
           value: "false"
 EOF
 
+# Service
+# Services are over using the SG's for EKS nodes: https://github.com/kubernetes/kops/issues/2721
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
-    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "3600"
-    service.beta.kubernetes.io/aws-load-balancer-internal: "false"
-    service.beta.kubernetes.io/aws-load-balancer-name: debug-app
-    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: ssl
-    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: https
-    service.beta.kubernetes.io/aws-load-balancer-type: nlb
   name: debug-app
   namespace: devops-app
+  annotations:
+    #external-dns.alpha.kubernetes.io/hostname: debug-app.nate.services
+    #service.beta.kubernetes.io/aws-load-balancer-name: "debug-app"
+    #service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    #service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "ssl"
+    #service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    #service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "3600"
+    #service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    #service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+    #service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:eu-west-1:847574585735:certificate/c5183f0d-0fd5-4a0e-aa05-3246e61437bc"
+    prometheus.io/scrape: "true"
 spec:
+  selector:
+    app: debug-app
   ports:
   - name: http
     port: 80
@@ -63,7 +77,54 @@ spec:
     protocol: TCP
     targetPort: 8000
   sessionAffinity: None
-  type: LoadBalancer
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: debug-app-monitor
+  namespace: devops-app
+  labels:
+    app: debug-app
+    release: prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: debug-app
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+    scheme: http
+  namespaceSelector:
+    matchNames:
+    - devops-app
 EOF
+
+# Ingress
+#cat <<EOF | kubectl apply -f -
+#apiVersion: extensions/v1beta1
+#kind: Ingress
+#metadata:
+#  name: debug-app
+#  namespace: devops-app
+#  annotations:
+#    kubernetes.io/ingress.class: alb
+#    alb.ingress.kubernetes.io/scheme: internal
+#    alb.ingress.kubernetes.io/target-type: instance
+#    alb.ingress.kubernetes.io/backend-protocol: HTTP
+#    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+#    alb.ingress.kubernetes.io/tags: Environment=dev,App=debug-app, Team=devops
+#    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:eu-west-1:847574585735:certificate/c5183f0d-0fd5-4a0e-aa05-3246e61437bc"
+#spec:
+#  rules:
+#    - host: debug-app.nate.services
+#      http:
+#        paths:
+#          - path: /
+#            backend:
+#              serviceName: debug-app
+#              servicePort: 443
+#EOF
 
 kubectl wait --for=condition=available --timeout=600s deployment/debug-app -n devops-app
