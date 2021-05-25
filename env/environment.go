@@ -15,6 +15,18 @@ type Environment struct {
 	RequestDelay    int
 }
 
+func GetEnvironment() Environment {
+	env := Environment{
+		HttpPort:        getEnvironmentKeyStr("PORT", "8000"),
+		FailHealthCheck: getEnvironmentKeyBool("FAIL_HEALTH_CHECK", false),
+		RequestDelay:    getEnvironmentKeyInt("REQUEST_DELAY", 5),
+	}
+	log.Printf("env:PORT: %s\n", env.HttpPort)
+	log.Printf("env:REQUEST_DELAY: %v\n", env.RequestDelay)
+	log.Printf("env:FAIL_HEALTH_CHECK: %v\n", env.FailHealthCheck)
+	return env
+}
+
 func getEnvironmentKeyStr(key string, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
@@ -45,17 +57,3 @@ func getEnvironmentKeyInt(key string, fallback int) int {
 	}
 	return fallback
 }
-
-func GetEnvironment() Environment {
-	env := Environment{
-		HttpPort:        getEnvironmentKeyStr("PORT", "8000"),
-		FailHealthCheck: getEnvironmentKeyBool("FAIL_HEALTH_CHECK", false),
-		RequestDelay:    getEnvironmentKeyInt("REQUEST_DELAY", 5),
-	}
-	log.Printf("env:PORT: %s\n", env.HttpPort)
-	log.Printf("env:REQUEST_DELAY: %v\n", env.RequestDelay)
-	log.Printf("env:FAIL_HEALTH_CHECK: %v\n", env.FailHealthCheck)
-	return env
-}
-
-

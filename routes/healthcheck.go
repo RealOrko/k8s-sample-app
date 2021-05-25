@@ -1,12 +1,12 @@
 package routes
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"sample-app/env"
+	"sample-app/formatters"
 	"time"
 )
 
@@ -14,18 +14,6 @@ import (
 
 func RegisterHealthcheck(r *mux.Router){
 	r.HandleFunc("/test", handleHealthCheck)
-}
-
-
-// *** JSON Formatter ***
-
-func toJSON(i interface{}) string {
-	res, err := json.Marshal(i)
-	if err != nil {
-		log.Fatal("Failed to convert to json ... ")
-		panic("Exiting ... ")
-	}
-	return string(res)
 }
 
 // *** Health Checks ***
@@ -40,7 +28,7 @@ var handleHealthCheck = func(w http.ResponseWriter, r *http.Request) {
 
 	if e.FailHealthCheck {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, toJSON(healthCheckResponse{
+		fmt.Fprintf(w, formatters.ToJSON(healthCheckResponse{
 			Message:  "Not feeling great!",
 			DateTime: time.Now(),
 		}))
@@ -49,7 +37,7 @@ var handleHealthCheck = func(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, toJSON(healthCheckResponse{
+	fmt.Fprintf(w, formatters.ToJSON(healthCheckResponse{
 		Message:  "Feeling good!",
 		DateTime: time.Now(),
 	}))
