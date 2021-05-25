@@ -70,7 +70,6 @@ metadata:
     #service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "3600"
     #service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     #service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
-    #service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:eu-west-1:847574585735:certificate/c5183f0d-0fd5-4a0e-aa05-3246e61437bc"
     prometheus.io/scrape: "true"
     prometheus.io/port: "8000"
     prometheus.io/path: "/metrics"
@@ -125,7 +124,6 @@ EOF
 #    alb.ingress.kubernetes.io/backend-protocol: HTTP
 #    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
 #    alb.ingress.kubernetes.io/tags: Environment=dev,App=debug-app, Team=devops
-#    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:eu-west-1:847574585735:certificate/c5183f0d-0fd5-4a0e-aa05-3246e61437bc"
 #spec:
 #  rules:
 #    - host: debug-app.nate.services
