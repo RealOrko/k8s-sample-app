@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+while true; do   
+  curl -v --header "Connection: keep-alive" "http://localhost:8085/test"; 
+  curl -v --header "Connection: keep-alive" "http://localhost:8085/metrics"; 
+done

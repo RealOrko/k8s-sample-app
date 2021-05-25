@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+kubectl port-forward service/debug-app 8085:80 -n devops-app

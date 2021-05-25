@@ -43,6 +43,14 @@ spec:
           value: "8000"
         - name: FAIL_HEALTH_CHECK
           value: "false"
+        - name: REQUEST_DELAY
+          value: "20"
+        livenessProbe:
+          httpGet:
+            path: /test
+            port: http
+          initialDelaySeconds: 3
+          periodSeconds: 30
 EOF
 
 # Service
@@ -64,6 +72,8 @@ metadata:
     #service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
     #service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:eu-west-1:847574585735:certificate/c5183f0d-0fd5-4a0e-aa05-3246e61437bc"
     prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
 spec:
   selector:
     app: debug-app
@@ -78,27 +88,27 @@ spec:
     targetPort: 8000
   sessionAffinity: None
   type: ClusterIP
----
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: debug-app-monitor
-  namespace: devops-app
-  labels:
-    app: debug-app
-    release: prometheus-stack
-spec:
-  selector:
-    matchLabels:
-      app: debug-app
-  endpoints:
-  - port: http
-    path: /metrics
-    interval: 15s
-    scheme: http
-  namespaceSelector:
-    matchNames:
-    - devops-app
+#---
+#apiVersion: monitoring.coreos.com/v1
+#kind: ServiceMonitor
+#metadata:
+#  name: debug-app-monitor
+#  namespace: devops-app
+#  labels:
+#    app: debug-app
+#    release: prometheus-stack
+#spec:
+#  selector:
+#    matchLabels:
+#      app: debug-app
+#  endpoints:
+#  - port: http
+#    path: /metrics
+#    interval: 15s
+#    scheme: http
+#  namespaceSelector:
+#    matchNames:
+#    - devops-app
 EOF
 
 # Ingress

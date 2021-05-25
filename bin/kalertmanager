@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+kubectl port-forward service/prometheus-alertmanager 8083:80 -n prometheus
