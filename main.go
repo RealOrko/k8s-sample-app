@@ -1,5 +1,8 @@
 package main
 
+//#include <time.h>
+import "C"
+
 import (
 	"encoding/json"
 	"fmt"
@@ -11,10 +14,13 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 )
+
+// *** Environment ***
 
 type Environment struct {
 	httpPort        string
@@ -65,6 +71,19 @@ func getEnvironment() Environment {
 
 	return env
 }
+
+// *** CPU Measurements ***
+
+var startTime = time.Now()
+var startTicks = C.clock()
+
+func CpuUsagePercent() float64 {
+	clockSeconds := float64(C.clock()-startTicks) / float64(C.CLOCKS_PER_SEC)
+	realSeconds := time.Since(startTime).Seconds()
+	return clockSeconds / realSeconds * 100
+}
+
+// *** JSON Formatter ***
 
 func toJSON(i interface{}) string {
 	res, err := json.Marshal(i)
@@ -140,12 +159,30 @@ var httpDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 	Help: "Duration of HTTP requests.",
 }, []string{"path"})
 
+var cpuUsagePercent = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	Name: "debug_app_cpu_usage_percent",
+	Help: "The usage of the CPU in %",
+}, []string{"default"})
+
+var memAllocatedTotal = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	Name: "debug_app_memory_allocated_mb",
+	Help: "The total app memory allocated in Mb",
+}, []string{"default"})
+
 // *** Random Delays ***
 
 func randomDelay(){
 	randomNumber := rand.Intn(getEnvironment().requestDelay)
 	time.Sleep(time.Duration(randomNumber) * time.Second)
 }
+
+// *** Helpers ***
+
+func bToMb(b uint64) float64 {
+	return float64(b / 1024 / 1024)
+}
+
+// *** Prometheus Middleware ***
 
 func prometheusMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -161,9 +198,14 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 
 		statusCode := rw.statusCode
 
-		responseStatus.WithLabelValues(strconv.Itoa(statusCode)).Inc()
-		totalRequests.WithLabelValues(path).Inc()
 		timer.ObserveDuration()
+		totalRequests.WithLabelValues(path).Inc()
+		responseStatus.WithLabelValues(strconv.Itoa(statusCode)).Inc()
+		cpuUsagePercent.WithLabelValues("default").Observe(CpuUsagePercent())
+
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		memAllocatedTotal.WithLabelValues("default").Observe(bToMb(m.TotalAlloc))
 	})
 }
 
@@ -171,6 +213,8 @@ func init() {
 	prometheus.Register(totalRequests)
 	prometheus.Register(responseStatus)
 	prometheus.Register(httpDuration)
+	prometheus.Register(cpuUsagePercent)
+	prometheus.Register(memAllocatedTotal)
 }
 
 // *** Main ***
